@@ -5,12 +5,12 @@
 export const PART_SYNONYMS: Record<string, string[]> = {
   liver: ['כבד', 'liver', 'foie', 'foie gras', 'máj', 'maj', 'libamáj', 'libamaj'],
   leg: ['שוק', 'שוקיים', 'leg', 'cuisse', 'comb', 'libacomb', 'drumstick'],
-  wing: ['כנף', 'כנפיים', 'wing', 'wings', 'aile', 'ailes', 'szárny', 'szarny', 'szárnytő', 'szarnyto', 'liba szárnytő'],
-  breast: ['חזה', 'breast', 'poitrine', 'mell', 'libamell'],
+  wing: ['כנף', 'כנפיים', 'צלעות', 'צלע', 'wing', 'wings', 'aile', 'ailes', 'szárny', 'szarny', 'szárnytő', 'szarnyto', 'liba szárnytő'],  breast: ['חזה', 'breast', 'poitrine', 'mell', 'libamell'],
   heart: ['לב', 'heart', 'coeur', 'cœur', 'szív', 'sziv'],
   gizzard: ['קורקבן', 'gizzard', 'gésier', 'gesier', 'zúza', 'zuza'],
   fat: ['שומן', 'fat', 'graisse', 'zsír', 'zsir'],
   thigh: ['ירך', 'ירכיים', 'thigh', 'felsőcomb', 'felsocomb'],
+  whole: ['שלם', 'אווז שלם', 'whole', 'egész', 'egesz'],
 };
 
 /** שם קנוני -> תווית עברית להצגה */
@@ -23,6 +23,7 @@ export const PART_HE: Record<string, string> = {
   gizzard: 'קורקבן',
   fat: 'שומן',
   thigh: 'ירך',
+  whole: 'שלם',
 };
 
 export const ANIMAL_SYNONYMS: Record<string, string[]> = {
