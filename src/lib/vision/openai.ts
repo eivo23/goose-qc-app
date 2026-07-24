@@ -42,6 +42,7 @@ const SYSTEM_PROMPT = `אתה מנתח תמונות של קרטוני מוצרי
 
 מכל תווית חלץ: rawText (הטקסט הגולמי המלא), language (he/en/hu/fr), translationHe (תרגום לעברית אם זר),
 customerName (רק במדבקה הכחולה), packageSeq (למשל "2/3"),
+חשוב מאוד - שם הלקוח (customerName): מופיע במדבקה הכחולה אחרי המילה לקוח. קרא את שם העסק המלא והמדויק אות-אות, כולל סיומות כמו בעמ, קיבוץ, מסעדת, רשת. אל תקצר, אל תשלים ואל תמציא. אם אינך בטוח בקריאה, החזר confidence נמוך במקום לנחש.
 identity: { animal, part, state, weight, sku, barcode } - במונחים באנגלית קנונית:
   animal: goose/duck/chicken ; part: liver/leg/wing/breast/heart/gizzard/fat/thigh ; state: frozen/chilled.
 תרגום הונגרי חשוב: máj=liver, comb=leg, szárnytő/szárny=wing, mell=breast.
