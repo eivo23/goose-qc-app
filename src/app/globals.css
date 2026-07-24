@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #f1f5f9;
+  color: #0f172a;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* מונע זום לא רצוי בעת מיקוד שדות באייפון */
+input, select, textarea, button { font-size: 16px; }
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold px-5 py-4 text-lg transition active:scale-[0.98];
+  }
+  .btn-primary { @apply btn bg-brand text-white shadow-sm; }
+  .btn-big { @apply btn w-full py-6 text-2xl; }
+  .btn-ghost { @apply btn bg-white border border-line text-ink; }
+  .btn-danger { @apply btn bg-alert text-white; }
+  .card { @apply bg-white rounded-2xl border border-line p-4 shadow-sm; }
+  .pill { @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold; }
+  .field { @apply w-full rounded-xl border border-line px-4 py-3 bg-white; }
+  .label { @apply block text-sm text-muted mb-1; }
+}
+
+.badge-ok { @apply pill bg-okbg text-ok; }
+.badge-alert { @apply pill bg-alertbg text-alert; }
+.badge-review { @apply pill bg-reviewbg text-review; }
+.badge-muted { @apply pill bg-slate-100 text-muted; }
