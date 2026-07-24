@@ -8,6 +8,9 @@ export interface ProductIdentity {
   weight: string | null;   // כפי שנקרא, לא משפיע על ההשוואה
   sku: string | null;
   barcode: string | null;
+  grade?: string | null;   // דרגת משקל כבד מנורמלת: '4-6' | '6-7' | '7-9' | '1+'
+  sliced?: boolean | null; // כבד פרוס (מדבקה כחולה) - true אם ההזמנה פרוסה
+  stars?: number | null;   // מספר הכוכביות שנראות על הקרטון (סימון "פרוס")
 }
 
 /** תווית בודדת כפי שחולצה על ידי מנוע ה-Vision */
