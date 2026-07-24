@@ -58,8 +58,6 @@ export function compareIdentities(
 
   // 5. ברקוד/מק"ט - אם שניהם קיימים ושונים, סימן אזהרה (לא קובע לבד)
   let barcodeConflict = false;
-  if (ordered.barcode && found.barcode && ordered.barcode !== found.barcode) barcodeConflict = true;
-  if (ordered.sku && found.sku && ordered.sku !== found.sku) barcodeConflict = true;
 
   if (mismatch) {
     return {
