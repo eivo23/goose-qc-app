@@ -125,7 +125,7 @@ function analyzeCarton(
     reasonCode = 'low_confidence';
     exceptions.push({ reasonCode, cartonIndex: imageIndex, detail: `ביטחון ${cmp.confidence} מתחת לסף` });
   } else if (cmp.matchResult === 'mismatch') {
-    exceptions.push({ reasonCode: 'product_mismatch', cartonIndex: imageIndex, detail: cmp.explanation });
+    exceptions.push({ reasonCode: cmp.reasonCode || 'product_mismatch', cartonIndex: imageIndex, detail: cmp.explanation });
   } else if (cmp.matchResult === 'uncertain') {
     exceptions.push({ reasonCode: reasonCode || 'uncertain_product', cartonIndex: imageIndex, detail: cmp.explanation });
   }
@@ -172,7 +172,7 @@ function makeUnreadable(imageIndex: number): CartonAnalysis {
 function deriveOverall(cartons: CartonAnalysis[], exceptions: CheckAnalysis['exceptions']): OverallResult {
   if (!cartons.length) return 'unreadable';
   const hasMismatch = cartons.some((c) => c.matchResult === 'mismatch') ||
-    exceptions.some((e) => ['product_mismatch', 'multiple_customers', 'sequence_gap', 'barcode_mismatch', 'duplicate_image'].includes(e.reasonCode));
+    exceptions.some((e) => ['product_mismatch', 'grade_mismatch', 'missing_stars', 'multiple_customers', 'sequence_gap', 'barcode_mismatch', 'duplicate_image'].includes(e.reasonCode));
   const allUnreadable = cartons.every((c) => c.confidence === 0);
   const hasUncertain = cartons.some((c) => c.matchResult === 'uncertain');
 
