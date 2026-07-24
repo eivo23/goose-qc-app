@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RegisterSW } from '@/components/RegisterSW';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'בקרת ליקוט אווז',
   description: 'זיהוי טעויות ליקוט בזמן אמת מתוך תמונות הקרטונים',
