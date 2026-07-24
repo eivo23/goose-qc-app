@@ -45,7 +45,52 @@ export function normalizeIdentity(
     if (skuMatch && skuMatch[1] !== barcode) sku = skuMatch[1];
   }
 
-  return { animal, part, state, weight, sku, barcode };
+  // דרגת משקל כבד: מנרמלים אך ורק את השדה הייעודי מהמנוע (grade), לא את כל הטקסט,
+  // כדי לא לתפוס בטעות מספרים אחרים (תאריך/משקל/מק"ט) שעל התווית.
+  const grade = normalizeLiverGrade(hint?.grade ?? null);
+
+  // כבד פרוס: מהדגל של המנוע או מזיהוי המילה "פרוס" בטקסט (מדבקה כחולה).
+  let sliced: boolean | null = null;
+  if (typeof hint?.sliced === 'boolean') sliced = hint.sliced;
+  if (sliced !== true && detectSliced(text)) sliced = true;
+
+  // כוכביות: רק מספר ודאי מהמנוע. null = לא ניתן לקבוע (לא מנחשים 0).
+  const stars = typeof hint?.stars === 'number' ? hint.stars : null;
+
+  return { animal, part, state, weight, sku, barcode, grade, sliced, stars };
+}
+
+/**
+ * מנרמל דרגת משקל של כבד אווז לצורה קנונית אחידה, כך שהמדבקה הכחולה
+ * (למשל "600/700", "קילו+") והריבוע שעל הקרטון (למשל "6-7", "1+") ישוו נכון.
+ * מיפוי: 400/600→4-6 · 600/700→6-7 · 700/900→7-9 · קילו+→1+.
+ * מחזיר null אם אין דרגה ברורה (גישה שמרנית לא למנחשים).
+ */
+export function normalizeLiverGrade(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = normalizeText(raw); // "600/700"→"600 700" · "6-7"→"6 7" · "1+" נשמר
+  if (/קילו|כילו|1\s*\+|1000|1\s*kg\s*\+|קג\s*\+|ק"?ג\s*\+/.test(t)) return '1+';
+  const nums = t.match(/\d+/g);
+  if (nums && nums.length >= 2) {
+    const a = gradeDigit(nums[0]);
+    const b = gradeDigit(nums[1]);
+    if (a && b) return `${a}-${b}`;
+  }
+  return null;
+}
+
+/** 400→"4", 900→"9", 6→"6" (מספר מאות → ספרת מאות; ספרה בודדת נשמרת). */
+function gradeDigit(n: string): string | null {
+  if (!n) return null;
+  if (n.length >= 3) return n[0];      // מאות: 400→4, 900→9
+  if (n.length <= 2) return n;         // כבר ספרה/דרגה: 4→4
+  return null;
+}
+
+/** האם התווית מציינת כבד פרוס (עברית/אנגלית/צרפתית/הונגרית). */
+export function detectSliced(text: string): boolean {
+  const t = normalizeText(text);
+  return /פרוס|פרוסה|פרוסות|sliced|tranch|szelet/.test(t);
 }
 
 /** האם הצלחנו לזהות בוודאות את זהות המוצר (חלק + בעל חיים) */
