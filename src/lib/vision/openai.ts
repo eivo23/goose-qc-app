@@ -12,6 +12,9 @@ const IdentitySchema = z.object({
   weight: z.string().nullable().optional(),
   sku: z.string().nullable().optional(),
   barcode: z.string().nullable().optional(),
+  grade: z.string().nullable().optional(),   // דרגת משקל כבד: כחולה "600/700" · קרטון "6-7"/"1+"
+  sliced: z.boolean().nullable().optional(),  // כבד פרוס (מדבקה כחולה)
+  stars: z.number().nullable().optional(),    // מספר כוכביות שנראות על הקרטון (null אם לא ברור)
 });
 
 const LabelSchema = z.object({
@@ -42,10 +45,17 @@ const SYSTEM_PROMPT = `אתה מנתח תמונות של קרטוני מוצרי
 
 מכל תווית חלץ: rawText (הטקסט הגולמי המלא), language (he/en/hu/fr), translationHe (תרגום לעברית אם זר),
 customerName (רק במדבקה הכחולה), packageSeq (למשל "2/3"),
-חשוב מאוד - שם הלקוח (customerName): מופיע במדבקה הכחולה אחרי המילה לקוח. קרא את שם העסק המלא והמדויק אות-אות, כולל סיומות כמו בעמ, קיבוץ, מסעדת, רשת. אל תקצר, אל תשלים ואל תמציא. אם אינך בטוח בקריאה, החזר confidence נמוך במקום לנחש.
-identity: { animal, part, state, weight, sku, barcode } - במונחים באנגלית קנונית:
+identity: { animal, part, state, weight, sku, barcode, grade, sliced, stars } - במונחים באנגלית קנונית:
   animal: goose/duck/chicken ; part: liver/leg/wing/breast/heart/gizzard/fat/thigh ; state: frozen/chilled.
 תרגום הונגרי חשוב: máj=liver, comb=leg, szárnytő/szárny=wing, mell=breast.
+
+חשוב מאוד - שם הלקוח (customerName): מופיע במדבקה הכחולה אחרי המילה "לקוח". קרא את שם העסק המלא והמדויק אות-אות, כולל בע"מ/ובניו/מספרים. אם אינך בטוח בקריאה, החזר confidence נמוך במקום לנחש.
+
+בדיקות ייעודיות לכבד אווז (liver) - חלץ בקפידה, ורק אם באמת ברור. אם לא ברור, החזר null (אל תנחש):
+- grade (דרגת משקל): במדבקה הכחולה מופיע טווח כמו "400/600", "600/700", "700/900" או "קילו+"/"1 ק""ג+". על תווית/ריבוע היצרן שעל הקרטון מופיעות ספרות כמו "4-6", "6-7", "7-9" או "1+". החזר את המחרוזת בדיוק כפי שהיא כתובה (למשל "600/700" לכחולה, "6-7" לקרטון).
+- sliced (כבד פרוס): במדבקה הכחולה בלבד - true אם כתוב "כבד אווז פרוס"/"פרוס", אחרת false.
+- stars (כוכביות): על הקרטון בלבד - מספר סימני הכוכבית (*) שאתה רואה בבירור (למשל 2 עבור "* *"). אם אינך מצליח לראות/לספור בוודאות, החזר null - אל תחזיר 0 בניחוש.
+
 confidence: 0-100 עד כמה אתה בטוח בקריאה. אל תנחש - אם לא ברור, החזר confidence נמוך.
 החזר JSON תקין בלבד לפי הסכימה.`;
 
