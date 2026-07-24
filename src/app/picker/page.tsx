@@ -12,6 +12,8 @@ function uid() {
   return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
+async function compressImage(file) { const url = URL.createObjectURL(file); const img = document.createElement('img'); await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = url; }); const m = 1600; let w = img.naturalWidth, h = img.naturalHeight; if (Math.max(w, h) > m) { const s = m / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); } const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url); const b = await new Promise((res) => c.toBlob((x) => res(x), 'image/jpeg', 0.72)); return new File([b], (file.name || 'img') + '.jpg', { type: 'image/jpeg' }); }
+
 export default function PickerPage() {
   const router = useRouter();
   const [me, setMe] = useState<any>(null);
@@ -59,8 +61,7 @@ export default function PickerPage() {
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    setShots((prev) => [...prev, ...files.map((f) => ({ id: uid(), file: f, url: URL.createObjectURL(f) }))]);
-    setResult(null); setError('');
+Promise.all(files.map(async (f) => { const c = await compressImage(f); return { id: uid(), file: c, url: URL.createObjectURL(c) }; })).then((ns) => setShots((prev) => [...prev, ...ns]));    setResult(null); setError('');
     if (fileRef.current) fileRef.current.value = '';
   }
 
