@@ -36,7 +36,10 @@ export function compareIdentities(
   }
 
   const reasons: string[] = [];
-  let mismatch = false;
+  let mismatch = false;      // אי-התאמת זהות בסיסית (בעל חיים/חלק/מצב)
+  let gradeMismatch = false; // דרגת משקל כבד שונה
+  let starsMismatch = false; // כבד פרוס אך אין 2 כוכביות
+  let liverReviewCode: string | null = null; // דרגה/כוכביות לא קריאות -> בדיקת מנהל
 
   // 2. בעל חיים
   if (ordered.animal !== found.animal) {
@@ -56,15 +59,65 @@ export function compareIdentities(
     reasons.push(`מצב שונה: הוזמן ${stateHe(ordered.state)}, נמצא ${stateHe(found.state)}`);
   }
 
+  // 4b. בדיקות ייעודיות לכבד אווז (מקרא): דרגת משקל + כבד פרוס = 2 כוכביות.
+  if (ordered.part === 'liver' && found.part === 'liver') {
+    // דרגת משקל: מדבקה כחולה "600/700" מול ריבוע על הקרטון "6-7" (מנורמלים לצורה אחת).
+    if (ordered.grade && found.grade) {
+      if (ordered.grade !== found.grade) {
+        gradeMismatch = true;
+        reasons.push(`דרגת משקל שונה: הוזמן ${ordered.grade}, בקרטון ${found.grade}`);
+      }
+    } else if (ordered.grade && !found.grade) {
+      // ההזמנה כוללת דרגה אך לא הצלחנו לקרוא את הריבוע בקרטון -> בדיקת מנהל (לא מנחשים).
+      liverReviewCode = 'grade_unreadable';
+    }
+
+    // כבד פרוס: אם ההזמנה פרוסה, הקרטון חייב להראות 2 כוכביות.
+    if (ordered.sliced === true) {
+      if (found.stars != null && found.stars >= 2) {
+        // תקין - סימון פרוס קיים.
+      } else if (found.stars != null && found.stars < 2) {
+        starsMismatch = true;
+        reasons.push('הוזמן כבד פרוס אך על הקרטון אין 2 כוכביות (סימון "פרוס")');
+      } else {
+        // לא הצלחנו לספור כוכביות בוודאות -> בדיקת מנהל (לא מנחשים).
+        liverReviewCode = 'stars_unreadable';
+      }
+    }
+  }
+
+  const anyMismatch = mismatch || gradeMismatch || starsMismatch;
+
   // 5. ברקוד/מק"ט - אם שניהם קיימים ושונים, סימן אזהרה (לא קובע לבד)
   let barcodeConflict = false;
+  if (ordered.barcode && found.barcode && ordered.barcode !== found.barcode) barcodeConflict = true;
+  if (ordered.sku && found.sku && ordered.sku !== found.sku) barcodeConflict = true;
 
-  if (mismatch) {
+  if (anyMismatch) {
+    // קוד סיבה: זהות בסיסית שונה גוברת; אחרת דרגת משקל; אחרת כוכביות.
+    const reasonCode = mismatch
+      ? 'product_mismatch'
+      : gradeMismatch
+      ? 'grade_mismatch'
+      : 'missing_stars';
     return {
       matchResult: 'mismatch',
-      confidence: Math.max(baseConfidence, 90), // בטוחים באי-התאמה כשהחלקים ברורים
-      reasonCode: 'product_mismatch',
+      confidence: Math.max(baseConfidence, 90), // בטוחים באי-התאמה כשהנתונים ברורים
+      reasonCode,
       explanation: reasons.join(' · '),
+    };
+  }
+
+  // דרגת משקל/כוכביות לא נקראו בוודאות אף שהזהות תואמת -> בדיקת מנהל (שמרני).
+  if (liverReviewCode) {
+    return {
+      matchResult: 'uncertain',
+      confidence: Math.min(baseConfidence, 70),
+      reasonCode: liverReviewCode,
+      explanation:
+        liverReviewCode === 'grade_unreadable'
+          ? 'הזהות תואמת אך לא ניתן לקרוא בוודאות את דרגת המשקל (הריבוע) על הקרטון - נדרשת בדיקת מנהל.'
+          : 'הוזמן כבד פרוס אך לא ניתן לספור בוודאות את הכוכביות על הקרטון - נדרשת בדיקת מנהל.',
     };
   }
 
