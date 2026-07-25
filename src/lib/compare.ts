@@ -60,29 +60,21 @@ export function compareIdentities(
   }
 
   // 4b. בדיקות ייעודיות לכבד אווז (מקרא): דרגת משקל + כבד פרוס = 2 כוכביות.
+  // עיקרון: הבדיקות האלה *מוסיפות* חריגה רק כשיש סתירה ברורה. הן לעולם אינן
+  // הופכות התאמת-מוצר תקינה ל"לא ניתן לקרוא" - אם לא ניתן לקרוא את הריבוע/הכוכביות,
+  // פשוט לא בודקים אותם (כדי לא להציף בהתראות שווא).
   if (ordered.part === 'liver' && found.part === 'liver') {
-    // דרגת משקל: מדבקה כחולה "600/700" מול ריבוע על הקרטון "6-7" (מנורמלים לצורה אחת).
-    if (ordered.grade && found.grade) {
-      if (ordered.grade !== found.grade) {
-        gradeMismatch = true;
-        reasons.push(`דרגת משקל שונה: הוזמן ${ordered.grade}, בקרטון ${found.grade}`);
-      }
-    } else if (ordered.grade && !found.grade) {
-      // ההזמנה כוללת דרגה אך לא הצלחנו לקרוא את הריבוע בקרטון -> בדיקת מנהל (לא מנחשים).
-      liverReviewCode = 'grade_unreadable';
+    // דרגת משקל: רק אם *שני* הצדדים נקראו בבירור ושונים -> אי-התאמה.
+    if (ordered.grade && found.grade && ordered.grade !== found.grade) {
+      gradeMismatch = true;
+      reasons.push(`דרגת משקל שונה: הוזמן ${ordered.grade}, בקרטון ${found.grade}`);
     }
 
-    // כבד פרוס: אם ההזמנה פרוסה, הקרטון חייב להראות 2 כוכביות.
-    if (ordered.sliced === true) {
-      if (found.stars != null && found.stars >= 2) {
-        // תקין - סימון פרוס קיים.
-      } else if (found.stars != null && found.stars < 2) {
-        starsMismatch = true;
-        reasons.push('הוזמן כבד פרוס אך על הקרטון אין 2 כוכביות (סימון "פרוס")');
-      } else {
-        // לא הצלחנו לספור כוכביות בוודאות -> בדיקת מנהל (לא מנחשים).
-        liverReviewCode = 'stars_unreadable';
-      }
+    // כבד פרוס: רק אם ההזמנה פרוסה והקרטון מראה בבירור פחות מ-2 כוכביות -> שגיאה.
+    // אם לא ניתן לספור בוודאות (stars = null) - לא חוסמים.
+    if (ordered.sliced === true && found.stars != null && found.stars < 2) {
+      starsMismatch = true;
+      reasons.push('הוזמן כבד פרוס אך על הקרטון אין 2 כוכביות (סימון "פרוס")');
     }
   }
 
