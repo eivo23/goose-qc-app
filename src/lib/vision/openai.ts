@@ -24,13 +24,13 @@ const LabelSchema = z.object({
   customerName: z.string().nullable().optional(),
   packageSeq: z.string().nullable().optional(),
   identity: IdentitySchema.default({}),
-  confidence: z.number().min(0).max(100).default(0),
+  confidence: z.number().min(0).max(100).default(85), // אם המנוע לא החזית ערך אך קרא תווית - מניחים קריאה סבירה
 });
 
 const CartonSchema = z.object({
   blue: LabelSchema.nullable().optional(),
   carton: LabelSchema.nullable().optional(),
-  pairingConfidence: z.number().min(0).max(100).default(0),
+  pairingConfidence: z.number().min(0).max(100).default(85), // ברירת מחדל גבוהה: רוב התמונות הן קרטון בודד עם הצמדה ברורה
 });
 
 const ResponseSchema = z.object({ cartons: z.array(CartonSchema).default([]) });
@@ -56,7 +56,8 @@ identity: { animal, part, state, weight, sku, barcode, grade, sliced, stars } - 
 - sliced (כבד פרוס): במדבקה הכחולה בלבד - true אם כתוב "כבד אווז פרוס"/"פרוס", אחרת false.
 - stars (כוכביות): על הקרטון בלבד - מספר סימני הכוכבית (*) שאתה רואה בבירור (למשל 2 עבור "* *"). אם אינך מצליח לראות/לספור בוודאות, החזר null - אל תחזיר 0 בניחוש.
 
-confidence: 0-100 עד כמה אתה בטוח בקריאה. אל תנחש - אם לא ברור, החזר confidence נמוך.
+confidence (0-100) לכל תווית: אם קראת את המוצר והטקסט בבירור - החזר ערך גבוה (90-100). החזר ערך נמוך (מתחת ל-60) רק אם התמונה מטושטשת/כהה/חתוכה ובאמת קשה לקרוא. אל תחזיר confidence נמוך סתם כאמצעי זהירות כשקראת בבירור.
+pairingConfidence: אם בתמונה קרטון אחד בלבד, או שברור איזו מדבקה כחולה שייכת לאיזה קרטון - החזת ערך גבוה (90-100). ערך נמוך רק כשבאמת יש בלבול בין כמה קרטונים.
 החזר JSON תקין בלבד לפי הסכימה.`;
 
 export class OpenAIVisionProvider implements VisionProvider {
