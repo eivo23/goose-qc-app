@@ -21,6 +21,7 @@ export default function CheckDetailPage() {
   const [d, setD] = useState<any>(null);
   const [note, setNote] = useState('');
   const [zoom, setZoom] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [msg, setMsg] = useState('');
 
   const load = useCallback(() => { api(`/api/checks/${id}`).then(setD).catch((e) => setMsg(e.message)); }, [id]);
@@ -71,7 +72,7 @@ export default function CheckDetailPage() {
         <div className="grid grid-cols-3 gap-2">
           {images.map((im: any) => (
             im.url ? (
-              <img key={im.id} src={im.url} alt="" onClick={() => setZoom(im.url)}
+              <img key={im.id} src={im.url} alt="" onClick={() => { setZoom(im.url); setZoomLevel(1); }}
                 className="w-full h-28 object-cover rounded-xl border border-line cursor-zoom-in" />
             ) : <div key={im.id} className="h-28 bg-slate-100 rounded-xl flex items-center justify-center text-muted text-xs">אין תצוגה</div>
           ))}
@@ -126,8 +127,24 @@ export default function CheckDetailPage() {
       )}
 
       {zoom && (
-        <div onClick={() => setZoom(null)} className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <img src={zoom} alt="" className="max-w-full max-h-full rounded-lg" />
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+          <div className="flex justify-between items-center p-3 text-white">
+            <div className="flex gap-2 items-center">
+              <button onClick={() => setZoomLevel((z) => Math.max(1, +(z - 0.5).toFixed(1)))}
+                className="w-11 h-11 rounded-full bg-white/20 text-2xl leading-none">−</button>
+              <button onClick={() => setZoomLevel((z) => Math.min(6, +(z + 0.5).toFixed(1)))}
+                className="w-11 h-11 rounded-full bg-white/20 text-2xl leading-none">+</button>
+              <span className="text-sm mr-1">{Math.round(zoomLevel * 100)}%</span>
+            </div>
+            <button onClick={() => { setZoom(null); setZoomLevel(1); }}
+              className="w-11 h-11 rounded-full bg-white/20 text-2xl leading-none">✕</button>
+          </div>
+          <div className="flex-1 overflow-auto p-2 text-center" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <img src={zoom} alt="" onClick={() => setZoomLevel((z) => (z >= 3 ? 1 : +(z + 1).toFixed(1)))}
+              style={{ width: `${zoomLevel * 100}%`, maxWidth: 'none' }}
+              className="inline-block rounded-lg align-top cursor-zoom-in select-none" />
+          </div>
+          <div className="text-center text-white/60 text-xs pb-2">הקש על התמונה להגדלה · גרור לתזוזה · ✕ לסגירה</div>
         </div>
       )}
     </main>
