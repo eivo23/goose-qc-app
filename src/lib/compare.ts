@@ -80,10 +80,8 @@ export function compareIdentities(
 
   const anyMismatch = mismatch || gradeMismatch || starsMismatch;
 
-  // 5. ברקוד/מק"ט - אם שניהם קיימים ושונים, סימן אזהרה (לא קובע לבד)
-  let barcodeConflict = false;
-  if (ordered.barcode && found.barcode && ordered.barcode !== found.barcode) barcodeConflict = true;
-  if (ordered.sku && found.sku && ordered.sku !== found.sku) barcodeConflict = true;
+  // הערה: אין השוואת ברקוד/מק"ט. מספר ההזמנה (מדבקה כחולה) שונה במכוון ממספר
+  // היצרן (קרטון), ולכן השוואה כזו יוצרת חריגות שווא. משווים לפי מוצר בלבד.
 
   if (anyMismatch) {
     // קוד סיבה: זהות בסיסית שונה גוברת; אחרת דרגת משקל; אחרת כוכביות.
@@ -110,15 +108,6 @@ export function compareIdentities(
         liverReviewCode === 'grade_unreadable'
           ? 'הזהות תואמת אך לא ניתן לקרוא בוודאות את דרגת המשקל (הריבוע) על הקרטון - נדרשת בדיקת מנהל.'
           : 'הוזמן כבד פרוס אך לא ניתן לספור בוודאות את הכוכביות על הקרטון - נדרשת בדיקת מנהל.',
-    };
-  }
-
-  if (barcodeConflict) {
-    return {
-      matchResult: 'uncertain',
-      confidence: Math.min(baseConfidence, 70),
-      reasonCode: 'barcode_mismatch',
-      explanation: 'זהות המוצר תואמת אך הברקוד/מק"ט אינם תואמים - נדרשת בדיקת מנהל.',
     };
   }
 
