@@ -57,7 +57,7 @@ identity: { animal, part, state, weight, sku, barcode, grade, sliced, stars } - 
 - stars (כוכביות): על הקרטון בלבד - מספר סימני הכוכבית (*) שאתה רואה בבירור (למשל 2 עבור "* *"). אם אינך מצליח לראות/לספור בוודאות, החזר null - אל תחזיר 0 בניחוש.
 
 confidence (0-100) לכל תווית: אם קראת את המוצר והטקסט בבירור - החזר ערך גבוה (90-100). החזר ערך נמוך (מתחת ל-60) רק אם התמונה מטושטשת/כהה/חתוכה ובאמת קשה לקרוא. אל תחזיר confidence נמוך סתם כאמצעי זהירות כשקראת בבירור.
-pairingConfidence: אם בתמונה קרטון אחד בלבד, או שברור איזו מדבקה כחולה שייכת לאיזה קרטון - החזת ערך גבוה (90-100). ערך נמוך רק כשבאמת יש בלבול בין כמה קרטונים.
+pairingConfidence: אם בתמונה קרטון אחד בלבד, או שברור איזו מדבקה כחולה שייכת לאיזה קרטון - החזר ערך גבוה (90-100). ערך נמוך רק כשבאמת יש בלבול בין כמה קרטונים.
 החזר JSON תקין בלבד לפי הסכימה.`;
 
 export class OpenAIVisionProvider implements VisionProvider {
@@ -73,38 +73,47 @@ export class OpenAIVisionProvider implements VisionProvider {
   }
 
   async analyzeImage(input: AnalyzeImageInput): Promise<DetectedCarton[]> {
-    try {
-      const res = await this.client.chat.completions.create({
-        model: this.model,
-        temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'נתח את התמונה והחזר JSON עם שדה "cartons".' },
-              {
-                type: 'image_url',
-                image_url: { url: `data:${input.mime};base64,${input.base64}`, detail: 'high' },
-              },
-            ],
-          },
-        ],
-      });
+    // ניסיון חוזר: מודלי Vision מחזירים לעיתים JSON ריק/חלקי גם על תמונה ברורה.
+    // מנסים עד 3 פעמים, ומחזירים "לא קריא" רק אם כל הניסיונות נכשלו.
+    let lastContent = '';
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await this.client.chat.completions.create({
+          model: this.model,
+          temperature: 0,
+          max_tokens: 4096,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'נתח את התמונה והחזר JSON עם שדה "cartons". חובה להחזיר לפחות קרטון אחד עם התוויות שקראת בפועל מהתמונה.' },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:${input.mime};base64,${input.base64}`, detail: 'high' },
+                },
+              ],
+            },
+          ],
+        });
 
-      const content = res.choices[0]?.message?.content || '{}';
-      const parsed = ResponseSchema.parse(JSON.parse(content));
-      return parsed.cartons.map((c) => ({
-        pairingConfidence: c.pairingConfidence,
-        blue: toLabel('blue', c.blue),
-        carton: toLabel('carton', c.carton),
-      }));
-    } catch (err: any) {
-      log.error('openai.analyzeImage failed', { error: err?.message });
-      // כשל בזיהוי -> קרטון לא-קריא (גישה שמרנית, לא מנחשים)
-      return [{ blue: null, carton: null, pairingConfidence: 0 }];
+        lastContent = res.choices[0]?.message?.content || '{}';
+        const parsed = ResponseSchema.parse(JSON.parse(lastContent));
+        const cartons = parsed.cartons.map((c) => ({
+          pairingConfidence: c.pairingConfidence,
+          blue: toLabel('blue', c.blue),
+          carton: toLabel('carton', c.carton),
+        }));
+        // הצלחה: לפחות תווית אחת נקראה. אחרת - ננסה שוב.
+        if (cartons.some((c) => c.blue || c.carton)) return cartons;
+        log.error('openai returned empty result', { attempt, model: this.model, sample: lastContent.slice(0, 400) });
+      } catch (err: any) {
+        log.error('openai.analyzeImage failed', { attempt, error: err?.message, sample: lastContent.slice(0, 400) });
+      }
     }
+    // כל הניסיונות נכשלו -> קרטון לא-קריא (גישה שמרנית, לא מנחשים)
+    return [{ blue: null, carton: null, pairingConfidence: 0 }];
   }
 }
 
