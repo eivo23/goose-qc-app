@@ -119,12 +119,10 @@ function analyzeCarton(
     cmp = compareIdentities(orderedId, foundId, baseConf);
   }
 
-  // סף ביטחון: התאמה בביטחון נמוך אינה מספיקה
-  let reasonCode = cmp.reasonCode;
-  if (cmp.matchResult === 'match' && cmp.confidence < thresholds.review) {
-    reasonCode = 'low_confidence';
-    exceptions.push({ reasonCode, cartonIndex: imageIndex, detail: `ביטחון ${cmp.confidence} מתחת לסף` });
-  } else if (cmp.matchResult === 'mismatch') {
+  // אין שער "ביטחון נמוך": אם המוצר זוהה בשני הצדדים והם תואמים - זו התאמה תקינה.
+  // חריגה נרשמת רק על בעיה אמיתית (מוצר שונה, זהות לא ברורה, סתירת דרגה/כוכביות).
+  const reasonCode = cmp.reasonCode;
+  if (cmp.matchResult === 'mismatch') {
     exceptions.push({ reasonCode: cmp.reasonCode || 'product_mismatch', cartonIndex: imageIndex, detail: cmp.explanation });
   } else if (cmp.matchResult === 'uncertain') {
     exceptions.push({ reasonCode: reasonCode || 'uncertain_product', cartonIndex: imageIndex, detail: cmp.explanation });
@@ -173,7 +171,8 @@ function deriveOverall(cartons: CartonAnalysis[], exceptions: CheckAnalysis['exc
   if (!cartons.length) return 'unreadable';
   const hasMismatch = cartons.some((c) => c.matchResult === 'mismatch') ||
     exceptions.some((e) => ['product_mismatch', 'grade_mismatch', 'missing_stars', 'multiple_customers', 'sequence_gap', 'barcode_mismatch', 'duplicate_image'].includes(e.reasonCode));
-  const allUnreadable = cartons.every((c) => c.confidence === 0);
+  // "לא ניתן לקרוא" רק אם באמת לא זוהה מוצר באף קרטון (שתי התוויות חסרות) - לא בגלל ציון ביטחון.
+  const allUnreadable = cartons.every((c) => !c.blueNormalized && !c.cartonNormalized);
   const hasUncertain = cartons.some((c) => c.matchResult === 'uncertain');
 
   if (hasMismatch) return 'exception';
