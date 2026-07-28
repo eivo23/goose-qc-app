@@ -58,7 +58,11 @@ identity: { animal, part, state, weight, sku, barcode, grade, sliced, stars } - 
 
 confidence (0-100) לכל תווית: אם קראת את המוצר והטקסט בבירור - החזר ערך גבוה (90-100). החזר ערך נמוך (מתחת ל-60) רק אם התמונה מטושטשת/כהה/חתוכה ובאמת קשה לקרוא. אל תחזיר confidence נמוך סתם כאמצעי זהירות כשקראת בבירור.
 pairingConfidence: אם בתמונה קרטון אחד בלבד, או שברור איזו מדבקה כחולה שייכת לאיזה קרטון - החזר ערך גבוה (90-100). ערך נמוך רק כשבאמת יש בלבול בין כמה קרטונים.
-החזר JSON תקין בלבד לפי הסכימה.`;
+
+מבנה ה-JSON חייב להיות בדיוק כך, עם המפתחות "blue" ו-"carton" (ולא "cartonLabel"/"blueLabel"/שמות אחרים):
+{"cartons":[{"blue":{תווית כחולה או null},"carton":{תווית יצרן או null},"pairingConfidence":מספר}]}
+כל תווית (blue/carton) מכילה: rawText, language, translationHe, customerName, packageSeq, identity, confidence.
+החזר JSON תקין בלבד.`;
 
 export class OpenAIVisionProvider implements VisionProvider {
   name = 'openai';
@@ -99,11 +103,20 @@ export class OpenAIVisionProvider implements VisionProvider {
         });
 
         lastContent = res.choices[0]?.message?.content || '{}';
-        const parsed = ResponseSchema.parse(JSON.parse(lastContent));
-        const cartons = parsed.cartons.map((c) => ({
-          pairingConfidence: c.pairingConfidence,
-          blue: toLabel('blue', c.blue),
-          carton: toLabel('carton', c.carton),
+        const raw: any = JSON.parse(lastContent);
+        // המנוע לעיתים משנה את שמות המפתחות (למשל "cartonLabel" במקום "carton").
+        // מקבלים את כל השמות הנפוצים כדי לא לאבד קריאה תקינה.
+        const rawCartons: any[] = Array.isArray(raw?.cartons)
+          ? raw.cartons
+          : Array.isArray(raw?.results)
+          ? raw.results
+          : raw && (raw.blue || raw.carton || raw.cartonLabel || raw.blueLabel)
+          ? [raw]
+          : [];
+        const cartons = rawCartons.map((c: any) => ({
+          pairingConfidence: typeof c?.pairingConfidence === 'number' ? c.pairingConfidence : 85,
+          blue: toLabel('blue', c?.blue ?? c?.blueLabel ?? c?.blueSticker ?? c?.orderLabel ?? c?.order ?? c?.orderSticker),
+          carton: toLabel('carton', c?.carton ?? c?.cartonLabel ?? c?.manufacturerLabel ?? c?.manufacturer ?? c?.productLabel ?? c?.label),
         }));
         // הצלחה: לפחות תווית אחת נקראה. אחרת - ננסה שוב.
         if (cartons.some((c) => c.blue || c.carton)) return cartons;
